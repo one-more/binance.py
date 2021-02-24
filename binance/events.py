@@ -297,6 +297,8 @@ class ListStatus(BinanceEventWrapper):
         self.list_reject_reason = event_data["r"]
         self.list_client_order_id = event_data["C"]
         self.orders = dict(
-            map(lambda x: (x["s"], {"orderid": x["i"], "clientorderid": x["c"]})),
-            event_data["O"],
+            map(
+                lambda x: (x["s"], {"orderid": x["i"], "clientorderid": x["c"]}),
+                event_data["O"],
+            ),
         )
