@@ -1,3 +1,7 @@
+from abc import ABC, abstractmethod
+from typing import Dict
+from aiohttp import ClientWebSocketResponse
+from termcolor import colored
 from . import __version__
 import aiohttp
 import asyncio
@@ -5,7 +9,7 @@ import logging
 import json
 
 
-class EventsDataStream:
+class EventsDataStream(ABC):
     def __init__(self, client, endpoint, user_agent):
         self.client = client
         self.endpoint = endpoint
@@ -29,8 +33,18 @@ class EventsDataStream:
                 asyncio.ensure_future(self.connect())
             self._handle_event(json.loads(msg.data))
 
+    @abstractmethod
+    def _handle_event(self, event_data: Dict):
+        pass
+
+    @abstractmethod
+    def connect(self):
+        pass
+
 
 class MarketEventsDataStream(EventsDataStream):
+    web_socket: ClientWebSocketResponse
+
     def __init__(self, client, endpoint, user_agent):
         super().__init__(client, endpoint, user_agent)
 
@@ -52,13 +66,25 @@ class MarketEventsDataStream(EventsDataStream):
         if "stream" in content:
             stream_name = content["stream"]
             content = content["data"]
-        if isinstance(content, list):
-            for event_content in content:
-                event_content["stream"] = stream_name
-                self.client.events.wrap_event(event_content).fire()
+
+            if isinstance(content, list):
+                for event_content in content:
+                    event_content["stream"] = stream_name
+                    self.client.events.wrap_event(event_content).fire()
+            else:
+                content["stream"] = stream_name
+                self.client.events.wrap_event(content).fire()
+
         else:
-            content["stream"] = stream_name
-            self.client.events.wrap_event(content).fire()
+            print(
+                colored(
+                    "received event without stream: {}".format(content),
+                    "cyan"
+                )
+            )
+
+    def connect(self):
+        self.start()
 
 
 class UserEventsDataStream(EventsDataStream):
@@ -90,3 +116,6 @@ class UserEventsDataStream(EventsDataStream):
     def _handle_event(self, content):
         event = self.client.events.wrap_event(content)
         event.fire()
+
+    def connect(self):
+        self.start()
