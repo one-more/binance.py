@@ -88,6 +88,8 @@ class MarketEventsDataStream(EventsDataStream):
 
 
 class UserEventsDataStream(EventsDataStream):
+    web_socket: aiohttp.ClientWebSocketResponse
+
     def __init__(self, client, endpoint, user_agent):
         super().__init__(client, endpoint, user_agent)
 
@@ -110,6 +112,7 @@ class UserEventsDataStream(EventsDataStream):
                 web_socket = await session.ws_connect(
                     f"{self.endpoint}/ws/{listen_key}", proxy=self.client.proxy
                 )
+            self.web_socket = web_socket
             asyncio.ensure_future(self._heartbeat(listen_key))
             await self._handle_messages(web_socket)
 
@@ -119,3 +122,6 @@ class UserEventsDataStream(EventsDataStream):
 
     def connect(self):
         self.start()
+
+    def connected(self):
+        return not self.web_socket.closed

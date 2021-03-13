@@ -4,12 +4,17 @@ from .web_sockets import UserEventsDataStream, MarketEventsDataStream
 from . import OrderType
 from .events import Events
 from enum import Enum
-from typing import Union
+from typing import Union, Dict
 import decimal
 import math
 
 
 class Client:
+    user_data_stream: UserEventsDataStream = None
+    market_data_stream: MarketEventsDataStream = None
+    _events: Events
+    symbols: Dict
+
     def __init__(
         self,
         api_key=None,
@@ -64,8 +69,12 @@ class Client:
     async def start_user_events_listener(
         self, endpoint="wss://stream.binance.com:9443"
     ):
-        self.user_data_stream = UserEventsDataStream(self, endpoint, self.user_agent)
-        await self.user_data_stream.start()
+        if not self.user_data_stream:
+            self.user_data_stream = UserEventsDataStream(self, endpoint, self.user_agent)
+            await self.user_data_stream.start()
+
+    def user_data_stream_connected(self):
+        return self.user_data_stream.connected()
 
     async def start_market_events_listener(
         self, endpoint="wss://stream.binance.com:9443"
