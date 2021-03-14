@@ -86,6 +86,12 @@ class MarketEventsDataStream(EventsDataStream):
     def connect(self):
         self.start()
 
+    def connected(self):
+        return not self.web_socket.closed
+
+    def close(self):
+        self.web_socket.close()
+
 
 class UserEventsDataStream(EventsDataStream):
     web_socket: aiohttp.ClientWebSocketResponse

@@ -79,6 +79,9 @@ class Client:
     async def start_market_events_listener(
         self, endpoint="wss://stream.binance.com:9443"
     ):
+        if self.market_data_stream:
+            self.market_data_stream.close()
+
         self.market_data_stream = MarketEventsDataStream(
             self, endpoint, self.user_agent
         )

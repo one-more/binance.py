@@ -1,6 +1,7 @@
 from collections import defaultdict
 from .errors import UnknownEventType
 
+
 # based on: https://stackoverflow.com/a/2022629/10144963
 class Handlers(list):
     def __call__(self, *args, **kwargs):
