@@ -10,8 +10,8 @@ import math
 
 
 class Client:
-    user_data_stream: UserEventsDataStream = None
-    market_data_stream: MarketEventsDataStream = None
+    user_data_stream: Union[UserEventsDataStream, None] = None
+    market_data_stream: Union[MarketEventsDataStream, None] = None
     _events: Events
     symbols: Dict
 
@@ -98,37 +98,41 @@ class Client:
         return math.floor(f * 10 ** n) / 10 ** n
 
     def refine_amount(self, symbol, amount: Union[str, decimal.Decimal], quote=False):
-        if type(amount) == str:  # to save time for developers
-            amount = decimal.Decimal(amount)
+        decimal_amount: decimal.Decimal = decimal.Decimal(amount)
+        refined_amount = amount
+
         if self.loaded:
             precision = self.symbols[symbol]["baseAssetPrecision"]
             lot_size_filter = self.symbols[symbol]["filters"]["LOT_SIZE"]
             step_size = decimal.Decimal(lot_size_filter["stepSize"])
-            amount = (
+            refined_amount = (
                 (
                     f"%.{precision}f"
                     % self.truncate(
-                        amount if quote else (amount - amount % step_size), precision
+                        decimal_amount if quote else (decimal_amount - decimal_amount % step_size), precision
                     )
                 )
                 .rstrip("0")
                 .rstrip(".")
             )
-        return amount
+
+        return refined_amount
 
     def refine_price(self, symbol, price: Union[str, decimal.Decimal]):
-        if type(price) == str:  # to save time for developers
-            price = decimal.Decimal(price)
+        decimal_price: decimal.Decimal = decimal.Decimal(price)
+        refined_price = price
+
         if self.loaded:
             precision = self.symbols[symbol]["baseAssetPrecision"]
             price_filter = self.symbols[symbol]["filters"]["PRICE_FILTER"]
-            price = price - (price % decimal.Decimal(price_filter["tickSize"]))
-            price = (
-                (f"%.{precision}f" % self.truncate(price, precision))
+            refined_price = decimal_price - (decimal_price % decimal.Decimal(price_filter["tickSize"]))
+            refined_price = (
+                (f"%.{precision}f" % self.truncate(refined_price, precision))
                 .rstrip("0")
                 .rstrip(".")
             )
-        return price
+
+        return refined_price
 
     def assert_symbol(self, symbol):
         if not symbol:
