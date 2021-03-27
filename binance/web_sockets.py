@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Dict
 from aiohttp import ClientWebSocketResponse
 from termcolor import colored
+from datetime import datetime
 from . import __version__
 import aiohttp
 import asyncio
@@ -10,6 +11,8 @@ import json
 
 
 class EventsDataStream(ABC):
+    last_msg_time: float
+
     def __init__(self, client, endpoint, user_agent):
         self.client = client
         self.endpoint = endpoint
@@ -21,6 +24,7 @@ class EventsDataStream(ABC):
     async def _handle_messages(self, web_socket):
         while True:
             msg = await web_socket.receive()
+            self.last_msg_time = datetime.now().timestamp()
             if msg.type in (aiohttp.WSMsgType.CLOSED, aiohttp.WSMsgType.CLOSE):
                 logging.error(
                     "Trying to receive something while the websocket is closed! Trying to reconnect."
@@ -87,7 +91,15 @@ class MarketEventsDataStream(EventsDataStream):
         self.start()
 
     def connected(self):
-        return not self.web_socket.closed
+        if len(self.client.events.registered_streams):
+            now = datetime.now()
+            delta = now - datetime.fromtimestamp(self.last_msg_time)
+            if delta.seconds > 2:
+                return False
+
+            return True
+
+        return True
 
     def close(self):
         self.web_socket.close()
